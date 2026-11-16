@@ -32,6 +32,7 @@ jobs:
           npm install @capacitor/core @capacitor/cli @capacitor/android
           npx cap init "Sparepart MJO" "com.sparepart.mjo" --web-dir www
           npx cap add android
+          echo 'configurations.all { exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk7"; exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk8" }' >> android/app/build.gradle
 
       - name: Build Debug APK
         run: |
