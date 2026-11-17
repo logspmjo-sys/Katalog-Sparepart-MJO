@@ -1,4 +1,4 @@
-name: Build APK Katalog Sparepart MJO
+name: Build Signed Release APK Katalog Sparepart MJO
 
 on:
   push:
@@ -48,17 +48,44 @@ jobs:
             cp icon.png assets/icon.png
             npx capacitor-assets generate --android
           fi
-          echo 'configurations.all { exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk7"; exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk8" }' >> android/app/build.gradle
 
-      - name: Build Debug APK
+      - name: Build Signed Release APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/mjo-release.jks
+          cat << 'EOF' >> android/app/build.gradle
+          configurations.all {
+              exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk7"
+              exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib-jdk8"
+          }
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file("mjo-release.jks")
+                      storePassword System.getenv("KEYSTORE_PASSWORD")
+                      keyAlias System.getenv("KEY_ALIAS")
+                      keyPassword System.getenv("KEY_PASSWORD")
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                      minifyEnabled false
+                  }
+              }
+          }
+          EOF
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk "app/build/outputs/apk/debug/Katalog Sparepart MJO.apk"
+          ./gradlew assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/Katalog Sparepart MJO.apk"
 
-      - name: Upload APK
+      - name: Upload Signed APK
         uses: actions/upload-artifact@v4
         with:
           name: Katalog Sparepart MJO
-          path: android/app/build/outputs/apk/debug/Katalog Sparepart MJO.apk
+          path: android/app/build/outputs/apk/release/Katalog Sparepart MJO.apk
