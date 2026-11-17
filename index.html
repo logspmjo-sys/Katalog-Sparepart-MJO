@@ -2,14 +2,63 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sparepart MJO - Katalog & Dashboard</title>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; }
-        iframe { width: 100%; height: 100%; border: none; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0f172a; }
+        iframe { width: 100%; height: 100%; border: none; display: block; }
     </style>
 </head>
 <body>
-    <iframe src="https://script.google.com/macros/s/AKfycbxsHJ5RR_Ypu_QaIbVVyyfebksvB_PMu6yaOF6O7JzfUKpYiKwsqb14KUHZnY9pOKpq/exec"></iframe>
+    <iframe id="gasFrame" allow="camera; microphone; geolocation" src="https://script.google.com/macros/s/AKfycbxsHJ5RR_Ypu_QaIbVVyyfebksvB_PMu6yaOF6O7JzfUKpYiKwsqb14KUHZnY9pOKpq/exec"></iframe>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', async function() {
+        var LocalNotifications = (window.Capacitor && window.Capacitor.Plugins)
+          ? window.Capacitor.Plugins.LocalNotifications
+          : null;
+
+        if (LocalNotifications) {
+          try {
+            var perm = await LocalNotifications.checkPermissions();
+            if (perm.display !== 'granted') {
+              await LocalNotifications.requestPermissions();
+            }
+            await LocalNotifications.createChannel({
+              id: 'mjo_notif_channel',
+              name: 'Notifikasi Katalog MJO',
+              description: 'Notifikasi Approval, Penawaran, dan Revisi Order',
+              importance: 5,
+              visibility: 1,
+              vibration: true
+            });
+          } catch (err) {
+            console.log('Init notif info:', err);
+          }
+        }
+
+        window.addEventListener('message', async function(event) {
+          var data = event.data;
+          if (!data || data.type !== 'MJO_NATIVE_NOTIF') return;
+
+          if (LocalNotifications) {
+            try {
+              await LocalNotifications.schedule({
+                notifications: [{
+                  id: Math.floor(Date.now() % 2147483647),
+                  title: data.title || 'Katalog Sparepart MJO',
+                  body: data.body || 'Ada pembaruan status order.',
+                  channelId: 'mjo_notif_channel',
+                  smallIcon: 'ic_stat_icon_config_sample',
+                  extra: { orderId: data.orderId || '' }
+                }]
+              });
+            } catch (e) {
+              console.error('Gagal menampilkan notif Android:', e);
+            }
+          }
+        });
+      });
+    </script>
 </body>
 </html>
