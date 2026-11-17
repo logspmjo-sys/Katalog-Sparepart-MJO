@@ -29,9 +29,21 @@ jobs:
           mkdir -p www assets
           cp *.html www/
           npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets
+          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/assets @capacitor/local-notifications
           npx cap init "Katalog Sparepart MJO" "com.sparepart.mjo" --web-dir www
           npx cap add android
+          npx cap sync android
+          python3 -c '
+          path = "android/app/src/main/AndroidManifest.xml"
+          with open(path, "r") as f:
+              txt = f.read()
+          perms = """    <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+              <uses-permission android:name="android.permission.VIBRATE" />"""
+          txt = txt.replace("<application", perms + "\n    <application", 1)
+          with open(path, "w") as f:
+              f.write(txt)
+          '
           if [ -f "icon.png" ]; then
             cp icon.png assets/icon.png
             npx capacitor-assets generate --android
